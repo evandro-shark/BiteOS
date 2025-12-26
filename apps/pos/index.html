@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiteOS - PDV</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .pos-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+        
+        .products-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .order-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .product-btn {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .product-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+        
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .product-price {
+            color: #27ae60;
+            font-weight: 600;
+        }
+        
+        .order-items {
+            flex: 1;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-total {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .payment-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .cash-register-card {
+            background: #e8f5e8;
+            border: 1px solid #27ae60;
+        }
+        
+        .register-closed {
+            background: #ffebee;
+            border: 1px solid #e74c3c;
+        }
+        
+        .categories {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .category-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        
+        .category-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="app-title">BiteOS - PDV</h1>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div id="user-info"></div>
+            <div class="lang-switcher">
+                <button class="lang-btn" onclick="switchLanguage('pt-BR')">PT</button>
+                <button class="lang-btn" onclick="switchLanguage('en-US')">EN</button>
+            </div>
+            <button class="btn" onclick="logout()" id="logout-btn">Sair</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen">
+            <div class="card" style="max-width: 400px; margin: 50px auto;">
+                <h3 id="login-title">Login - PDV</h3>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label id="login-label">Login:</label>
+                        <input type="text" class="form-control" id="login-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="password-label">Senha:</label>
+                        <input type="password" class="form-control" id="password-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-success" id="login-submit">Entrar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Cash Register Management -->
+        <div id="register-screen" class="hidden">
+            <div class="card" id="register-status">
+                <!-- Register status will be shown here -->
+            </div>
+            
+            <div class="grid grid-2">
+                <div class="card">
+                    <h3 id="open-register-title">Abrir Caixa</h3>
+                    <div class="form-group">
+                        <label id="opening-amount-label">Valor Inicial:</label>
+                        <input type="number" class="form-control" id="opening-amount" step="0.01">
+                    </div>
+                    <button class="btn btn-success" onclick="openRegister()" id="open-register-btn">Abrir Caixa</button>
+                </div>
+                
+                <div class="card">
+                    <h3 id="register-operations-title">Operações</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn" onclick="showWithdrawal()" id="withdrawal-btn">Sangria</button>
+                        <button class="btn" onclick="showDeposit()" id="deposit-btn">Suprimento</button>
+                        <button class="btn btn-danger" onclick="closeRegister()" id="close-register-btn">Fechar Caixa</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- POS Screen -->
+        <div id="pos-screen" class="hidden">
+            <div class="pos-grid">
+                <div class="products-panel">
+                    <h3 id="products-title">Produtos</h3>
+                    
+                    <div class="categories" id="categories">
+                        <button class="category-btn active" onclick="filterByCategory('')">Todos</button>
+                    </div>
+                    
+                    <div class="product-grid" id="product-grid">
+                        <!-- Products will be loaded here -->
+                    </div>
+                </div>
+                
+                <div class="order-panel">
+                    <h3 id="current-order-title">Pedido Atual</h3>
+                    
+                    <div class="order-items" id="order-items">
+                        <p id="empty-order">Nenhum item adicionado</p>
+                    </div>
+                    
+                    <div class="order-total" id="order-total">
+                        <strong>Total: R$ 0,00</strong>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label id="customer-info-label">Cliente (opcional):</label>
+                        <input type="text" class="form-control" id="customer-info" placeholder="Nome ou telefone">
+                    </div>
+                    
+                    <div class="payment-buttons">
+                        <button class="btn btn-success" onclick="processPayment('cash')" id="cash-btn">Dinheiro</button>
+                        <button class="btn btn-success" onclick="processPayment('card')" id="card-btn">Cartão</button>
+                        <button class="btn btn-success" onclick="processPayment('pix')" id="pix-btn">PIX</button>
+                        <button class="btn btn-warning" onclick="clearOrder()" id="clear-btn">Limpar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="payment-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="payment-title">Pagamento</h3>
+                <button class="close" onclick="hidePaymentModal()">&times;</button>
+            </div>
+            <div id="payment-content">
+                <!-- Payment content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../i18n.js"></script>
+    <script src="../utils.js"></script>
+    <script>
+        let currentUser = null;
+        let currentRegister = null;
+        let currentOrder = [];
+        let products = [];
+        let categories = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLanguage();
+            checkAuth();
+        });
+
+        document.addEventListener('languageChanged', updateLanguage);
+
+        function updateLanguage() {
+            document.getElementById('app-title').textContent = i18n.t('pos.title');
+            document.getElementById('login-title').textContent = 'Login - ' + i18n.t('pos.title');
+            document.getElementById('login-label').textContent = 'Login:';
+            document.getElementById('password-label').textContent = 'Senha:';
+            document.getElementById('login-submit').textContent = 'Entrar';
+            document.getElementById('logout-btn').textContent = 'Sair';
+            document.getElementById('open-register-title').textContent = i18n.t('pos.open.register');
+            document.getElementById('opening-amount-label').textContent = 'Valor Inicial:';
+            document.getElementById('open-register-btn').textContent = i18n.t('pos.open.register');
+            document.getElementById('register-operations-title').textContent = 'Operações';
+            document.getElementById('withdrawal-btn').textContent = 'Sangria';
+            document.getElementById('deposit-btn').textContent = 'Suprimento';
+            document.getElementById('close-register-btn').textContent = i18n.t('pos.close.register');
+            document.getElementById('products-title').textContent = 'Produtos';
+            document.getElementById('current-order-title').textContent = i18n.t('pos.new.order');
+            document.getElementById('empty-order').textContent = 'Nenhum item adicionado';
+            document.getElementById('customer-info-label').textContent = 'Cliente (opcional):';
+            document.getElementById('cash-btn').textContent = 'Dinheiro';
+            document.getElementById('card-btn').textContent = 'Cartão';
+            document.getElementById('pix-btn').textContent = 'PIX';
+            document.getElementById('clear-btn').textContent = 'Limpar';
+            document.getElementById('payment-title').textContent = i18n.t('pos.payment');
+            
+            // Update active language button
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === (i18n.getCurrentLanguage() === 'pt-BR' ? 'PT' : 'EN'));
+            });
+        }
+
+        function switchLanguage(lang) {
+            i18n.setLanguage(lang);
+        }
+
+        function checkAuth() {
+            currentUser = biteOS.getUser();
+            if (currentUser && (currentUser.role === 'cashier' || currentUser.role === 'manager')) {
+                showRegisterScreen();
+                loadProducts();
+            } else {
+                showLoginScreen();
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('register-screen').classList.add('hidden');
+            document.getElementById('pos-screen').classList.add('hidden');
+        }
+
+        function showRegisterScreen() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('register-screen').classList.remove('hidden');
+            document.getElementById('pos-screen').classList.add('hidden');
+            
+            document.getElementById('user-info').textContent = `Usuário: ${currentUser.name}`;
+            checkRegisterStatus();
+        }
+
+        function showPOSScreen() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('register-screen').classList.add('hidden');
+            document.getElementById('pos-screen').classList.remove('hidden');
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const credentials = {
+                login: document.getElementById('login-input').value,
+                password: document.getElementById('password-input').value
+            };
+            
+            try {
+                const result = await biteOS.login(credentials);
+                currentUser = result.user;
+                
+                if (currentUser.role === 'cashier' || currentUser.role === 'manager') {
+                    showRegisterScreen();
+                    loadProducts();
+                } else {
+                    biteOS.showNotification('Acesso negado para este tipo de usuário', 'error');
+                }
+            } catch (error) {
+                biteOS.showNotification('Credenciais inválidas', 'error');
+            }
+        });
+
+        function logout() {
+            biteOS.logout();
+        }
+
+        async function checkRegisterStatus() {
+            // In a real app, check if register is open
+            // For demo, assume closed initially
+            updateRegisterStatus(false);
+        }
+
+        function updateRegisterStatus(isOpen) {
+            const statusDiv = document.getElementById('register-status');
+            
+            if (isOpen) {
+                statusDiv.className = 'card cash-register-card';
+                statusDiv.innerHTML = `
+                    <h3>✅ Caixa Aberto</h3>
+                    <p>Operador: ${currentUser.name}</p>
+                    <p>Aberto em: ${new Date().toLocaleString()}</p>
+                    <button class="btn btn-success" onclick="showPOSScreen()">Ir para Vendas</button>
+                `;
+            } else {
+                statusDiv.className = 'card register-closed';
+                statusDiv.innerHTML = `
+                    <h3>❌ Caixa Fechado</h3>
+                    <p>É necessário abrir o caixa para iniciar as vendas</p>
+                `;
+            }
+        }
+
+        function openRegister() {
+            const amount = parseFloat(document.getElementById('opening-amount').value) || 0;
+            
+            // In a real app, save to database
+            currentRegister = {
+                id: Date.now(),
+                userId: currentUser.id,
+                openingAmount: amount,
+                openedAt: new Date()
+            };
+            
+            updateRegisterStatus(true);
+            biteOS.showNotification('Caixa aberto com sucesso', 'success');
+        }
+
+        function closeRegister() {
+            if (confirm('Deseja realmente fechar o caixa?')) {
+                updateRegisterStatus(false);
+                currentRegister = null;
+                biteOS.showNotification('Caixa fechado', 'success');
+            }
+        }
+
+        async function loadProducts() {
+            try {
+                // In a real app, filter by restaurant
+                products = await biteOS.api('/restaurants/1/products');
+                
+                // Extract categories
+                categories = [...new Set(products.map(p => p.category).filter(Boolean))];
+                displayCategories();
+                displayProducts();
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        function displayCategories() {
+            const categoriesDiv = document.getElementById('categories');
+            categoriesDiv.innerHTML = `
+                <button class="category-btn active" onclick="filterByCategory('')">Todos</button>
+                ${categories.map(cat => `
+                    <button class="category-btn" onclick="filterByCategory('${cat}')">${cat}</button>
+                `).join('')}
+            `;
+        }
+
+        function filterByCategory(category) {
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === (category || 'Todos'));
+            });
+            
+            const filteredProducts = category ? products.filter(p => p.category === category) : products;
+            displayProducts(filteredProducts);
+        }
+
+        function displayProducts(productsToShow = products) {
+            const grid = document.getElementById('product-grid');
+            grid.innerHTML = productsToShow.map(product => `
+                <div class="product-btn" onclick="addToOrder(${product.id}, '${product.name}', ${product.price})">
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-price">${biteOS.formatCurrency(product.price)}</div>
+                </div>
+            `).join('');
+        }
+
+        function addToOrder(productId, name, price) {
+            const existingItem = currentOrder.find(item => item.productId === productId);
+            
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                currentOrder.push({
+                    productId,
+                    name,
+                    price,
+                    quantity: 1
+                });
+            }
+            
+            updateOrderDisplay();
+        }
+
+        function updateOrderDisplay() {
+            const orderItems = document.getElementById('order-items');
+            
+            if (currentOrder.length === 0) {
+                orderItems.innerHTML = '<p id="empty-order">Nenhum item adicionado</p>';
+                document.getElementById('order-total').innerHTML = '<strong>Total: R$ 0,00</strong>';
+                return;
+            }
+            
+            orderItems.innerHTML = currentOrder.map((item, index) => `
+                <div class="order-item">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        <small>${biteOS.formatCurrency(item.price)} x ${item.quantity}</small>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button class="quantity-btn" onclick="updateOrderQuantity(${index}, -1)">-</button>
+                        <span>${item.quantity}</span>
+                        <button class="quantity-btn" onclick="updateOrderQuantity(${index}, 1)">+</button>
+                        <button class="btn btn-danger" onclick="removeFromOrder(${index})">×</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('order-total').innerHTML = `<strong>Total: ${biteOS.formatCurrency(total)}</strong>`;
+        }
+
+        function updateOrderQuantity(index, change) {
+            currentOrder[index].quantity += change;
+            if (currentOrder[index].quantity <= 0) {
+                currentOrder.splice(index, 1);
+            }
+            updateOrderDisplay();
+        }
+
+        function removeFromOrder(index) {
+            currentOrder.splice(index, 1);
+            updateOrderDisplay();
+        }
+
+        function clearOrder() {
+            if (currentOrder.length > 0 && confirm('Limpar pedido atual?')) {
+                currentOrder = [];
+                updateOrderDisplay();
+            }
+        }
+
+        function processPayment(method) {
+            if (currentOrder.length === 0) {
+                biteOS.showNotification('Adicione itens ao pedido', 'warning');
+                return;
+            }
+            
+            const total = currentOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            showPaymentModal(method, total);
+        }
+
+        function showPaymentModal(method, total) {
+            const modal = document.getElementById('payment-modal');
+            const content = document.getElementById('payment-content');
+            
+            content.innerHTML = `
+                <div class="form-group">
+                    <label>Método: ${method.toUpperCase()}</label>
+                    <div style="font-size: 24px; text-align: center; margin: 20px 0;">
+                        <strong>${biteOS.formatCurrency(total)}</strong>
+                    </div>
+                </div>
+                ${method === 'cash' ? `
+                    <div class="form-group">
+                        <label>Valor Recebido:</label>
+                        <input type="number" class="form-control" id="received-amount" step="0.01" value="${total}">
+                    </div>
+                    <div class="form-group">
+                        <label>Troco:</label>
+                        <div id="change-amount">R$ 0,00</div>
+                    </div>
+                ` : ''}
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="btn btn-success" onclick="confirmPayment('${method}', ${total})">Confirmar</button>
+                    <button class="btn" onclick="hidePaymentModal()">Cancelar</button>
+                </div>
+            `;
+            
+            if (method === 'cash') {
+                document.getElementById('received-amount').addEventListener('input', function() {
+                    const received = parseFloat(this.value) || 0;
+                    const change = received - total;
+                    document.getElementById('change-amount').textContent = biteOS.formatCurrency(Math.max(0, change));
+                });
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function hidePaymentModal() {
+            document.getElementById('payment-modal').classList.add('hidden');
+        }
+
+        async function confirmPayment(method, total) {
+            try {
+                const orderData = {
+                    customer: {
+                        name: document.getElementById('customer-info').value || 'Cliente Balcão',
+                        phone: '00000000000',
+                        address: 'Balcão'
+                    },
+                    restaurant_id: 1, // In a real app, get from user context
+                    items: currentOrder.map(item => ({
+                        product_id: item.productId,
+                        quantity: item.quantity,
+                        unit_price: item.price,
+                        add_ons: [],
+                        notes: ''
+                    })),
+                    payment_method: method,
+                    total_amount: total,
+                    notes: '',
+                    origin: 'pos'
+                };
+                
+                const result = await biteOS.api('/orders', {
+                    method: 'POST',
+                    body: orderData
+                });
+                
+                biteOS.showNotification(`Pedido #${result.orderId} finalizado!`, 'success');
+                
+                // Print receipt (simulation)
+                printReceipt(result.orderId, orderData);
+                
+                currentOrder = [];
+                updateOrderDisplay();
+                hidePaymentModal();
+                
+            } catch (error) {
+                biteOS.showNotification('Erro ao processar pagamento', 'error');
+            }
+        }
+
+        function printReceipt(orderId, orderData) {
+            console.log('=== CUPOM FISCAL ===');
+            console.log(`Pedido #${orderId}`);
+            console.log(`Data: ${new Date().toLocaleString()}`);
+            console.log(`Cliente: ${orderData.customer.name}`);
+            console.log('--- ITENS ---');
+            orderData.items.forEach(item => {
+                const product = products.find(p => p.id === item.product_id);
+                console.log(`${item.quantity}x ${product.name} - ${biteOS.formatCurrency(item.unit_price * item.quantity)}`);
+            });
+            console.log(`TOTAL: ${biteOS.formatCurrency(orderData.total_amount)}`);
+            console.log(`Pagamento: ${orderData.payment_method.toUpperCase()}`);
+            console.log('===================');
+        }
+
+        // Real-time order updates
+        biteOS.onOrderUpdate((data) => {
+            // Handle real-time updates if needed
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiteOS - Delivery</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .restaurant-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        
+        .restaurant-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .restaurant-image {
+            width: 100%;
+            height: 150px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+        
+        .restaurant-info {
+            padding: 15px;
+        }
+        
+        .restaurant-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .restaurant-address {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .delivery-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .product-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .product-image {
+            width: 100%;
+            height: 120px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .product-info {
+            padding: 15px;
+        }
+        
+        .product-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .product-description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .product-price {
+            font-weight: 600;
+            color: #27ae60;
+            font-size: 18px;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .cart-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom-color: #3498db;
+            color: #3498db;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="app-title">BiteOS - Delivery</h1>
+        <div class="lang-switcher">
+            <button class="lang-btn" onclick="switchLanguage('pt-BR')">PT</button>
+            <button class="lang-btn" onclick="switchLanguage('en-US')">EN</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('restaurants')" id="tab-restaurants">Restaurantes</button>
+            <button class="tab" onclick="showTab('cart')" id="tab-cart">Carrinho (<span id="cart-count">0</span>)</button>
+            <button class="tab" onclick="showTab('orders')" id="tab-orders">Pedidos</button>
+        </div>
+
+        <!-- Restaurants Tab -->
+        <div id="restaurants-tab">
+            <div class="card">
+                <h3 id="restaurants-title">Restaurantes Próximos</h3>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="location-input" placeholder="Digite seu endereço">
+                    <button class="btn" onclick="searchRestaurants()" id="search-btn">Buscar</button>
+                </div>
+            </div>
+
+            <div id="restaurants-grid" class="grid grid-3">
+                <!-- Restaurants will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Menu Tab -->
+        <div id="menu-tab" class="hidden">
+            <div class="card">
+                <button class="btn" onclick="showTab('restaurants')" id="back-btn">← Voltar</button>
+                <h3 id="restaurant-name"></h3>
+                <p id="restaurant-address"></p>
+            </div>
+
+            <div id="products-grid" class="product-grid">
+                <!-- Products will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Cart Tab -->
+        <div id="cart-tab" class="hidden">
+            <div class="card">
+                <h3 id="cart-title">Carrinho</h3>
+                <div id="cart-items">
+                    <!-- Cart items will be loaded here -->
+                </div>
+                <div id="cart-total" class="form-group">
+                    <strong>Total: R$ 0,00</strong>
+                </div>
+                <button class="btn btn-success" onclick="showCheckout()" id="checkout-btn">Finalizar Pedido</button>
+            </div>
+        </div>
+
+        <!-- Orders Tab -->
+        <div id="orders-tab" class="hidden">
+            <div class="card">
+                <h3 id="orders-title">Meus Pedidos</h3>
+                <div id="orders-list">
+                    <!-- Orders will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="checkout-title">Finalizar Pedido</h3>
+                <button class="close" onclick="hideCheckout()">&times;</button>
+            </div>
+            <form id="checkout-form">
+                <div class="form-group">
+                    <label id="name-label">Nome:</label>
+                    <input type="text" class="form-control" id="customer-name" required>
+                </div>
+                <div class="form-group">
+                    <label id="phone-label">Telefone:</label>
+                    <input type="tel" class="form-control" id="customer-phone" required>
+                </div>
+                <div class="form-group">
+                    <label id="address-label">Endereço:</label>
+                    <textarea class="form-control" id="customer-address" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label id="payment-label">Forma de Pagamento:</label>
+                    <select class="form-control" id="payment-method">
+                        <option value="cash">Dinheiro</option>
+                        <option value="card">Cartão</option>
+                        <option value="pix">PIX</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="notes-label">Observações:</label>
+                    <textarea class="form-control" id="order-notes"></textarea>
+                </div>
+                <button type="submit" class="btn btn-success" id="place-order-btn">Fazer Pedido</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../i18n.js"></script>
+    <script src="../utils.js"></script>
+    <script>
+        let currentRestaurant = null;
+        let cart = [];
+        let orders = [];
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLanguage();
+            loadRestaurants();
+            loadOrders();
+            updateCartDisplay();
+        });
+
+        document.addEventListener('languageChanged', updateLanguage);
+
+        function updateLanguage() {
+            document.getElementById('app-title').textContent = i18n.t('customer.title');
+            document.getElementById('tab-restaurants').textContent = i18n.t('customer.restaurants');
+            document.getElementById('tab-cart').innerHTML = `${i18n.t('customer.cart')} (<span id="cart-count">${cart.length}</span>)`;
+            document.getElementById('tab-orders').textContent = i18n.t('customer.order.history');
+            document.getElementById('restaurants-title').textContent = i18n.t('customer.restaurants');
+            document.getElementById('search-btn').textContent = i18n.t('common.search');
+            document.getElementById('back-btn').textContent = `← ${i18n.t('common.cancel')}`;
+            document.getElementById('cart-title').textContent = i18n.t('customer.cart');
+            document.getElementById('checkout-btn').textContent = i18n.t('customer.checkout');
+            document.getElementById('orders-title').textContent = i18n.t('customer.order.history');
+            document.getElementById('checkout-title').textContent = i18n.t('customer.checkout');
+            document.getElementById('name-label').textContent = i18n.t('common.name') + ':';
+            document.getElementById('phone-label').textContent = i18n.t('common.phone') + ':';
+            document.getElementById('address-label').textContent = i18n.t('common.address') + ':';
+            document.getElementById('payment-label').textContent = 'Forma de Pagamento:';
+            document.getElementById('notes-label').textContent = i18n.t('common.notes') + ':';
+            document.getElementById('place-order-btn').textContent = 'Fazer Pedido';
+            
+            // Update active language button
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === (i18n.getCurrentLanguage() === 'pt-BR' ? 'PT' : 'EN'));
+            });
+        }
+
+        function switchLanguage(lang) {
+            i18n.setLanguage(lang);
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('[id$="-tab"]').forEach(t => t.classList.add('hidden'));
+            
+            document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+            document.getElementById(`${tab}-tab`).classList.remove('hidden');
+        }
+
+        async function loadRestaurants() {
+            try {
+                const restaurants = await biteOS.api('/restaurants');
+                displayRestaurants(restaurants);
+            } catch (error) {
+                biteOS.showNotification('Erro ao carregar restaurantes', 'error');
+            }
+        }
+
+        function displayRestaurants(restaurants) {
+            const grid = document.getElementById('restaurants-grid');
+            grid.innerHTML = restaurants.map(restaurant => `
+                <div class="restaurant-card" onclick="loadMenu(${restaurant.id})">
+                    <div class="restaurant-image">
+                        📍 ${restaurant.name}
+                    </div>
+                    <div class="restaurant-info">
+                        <div class="restaurant-name">${restaurant.name}</div>
+                        <div class="restaurant-address">${restaurant.address}</div>
+                        <div class="delivery-info">
+                            <span>Entrega: ${restaurant.delivery_radius_km}km</span>
+                            <span>Taxa: R$ 5,00</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadMenu(restaurantId) {
+            try {
+                const restaurant = await biteOS.api(`/restaurants/${restaurantId}`);
+                const products = await biteOS.api(`/restaurants/${restaurantId}/products`);
+                
+                currentRestaurant = { id: restaurantId, ...restaurant };
+                displayMenu(products);
+                showMenuTab();
+            } catch (error) {
+                biteOS.showNotification('Erro ao carregar cardápio', 'error');
+            }
+        }
+
+        function displayMenu(products) {
+            document.getElementById('restaurant-name').textContent = currentRestaurant.name;
+            document.getElementById('restaurant-address').textContent = currentRestaurant.address;
+            
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <div class="product-image">🍔</div>
+                    <div class="product-info">
+                        <div class="product-name">${product.name}</div>
+                        <div class="product-description">${product.description || ''}</div>
+                        <div class="product-price">${biteOS.formatCurrency(product.price)}</div>
+                        <button class="btn" onclick="addToCart(${product.id}, '${product.name}', ${product.price})">
+                            Adicionar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showMenuTab() {
+            document.getElementById('restaurants-tab').classList.add('hidden');
+            document.getElementById('menu-tab').classList.remove('hidden');
+        }
+
+        function addToCart(productId, name, price) {
+            const existingItem = cart.find(item => item.productId === productId);
+            
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({
+                    productId,
+                    name,
+                    price,
+                    quantity: 1,
+                    restaurantId: currentRestaurant.id
+                });
+            }
+            
+            updateCartDisplay();
+            biteOS.showNotification('Item adicionado ao carrinho', 'success');
+        }
+
+        function updateCartDisplay() {
+            document.getElementById('cart-count').textContent = cart.length;
+            
+            const cartItems = document.getElementById('cart-items');
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p>Carrinho vazio</p>';
+                document.getElementById('cart-total').innerHTML = '<strong>Total: R$ 0,00</strong>';
+                return;
+            }
+            
+            cartItems.innerHTML = cart.map((item, index) => `
+                <div class="cart-item">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        <small>${biteOS.formatCurrency(item.price)}</small>
+                    </div>
+                    <div class="cart-controls">
+                        <button class="quantity-btn" onclick="updateQuantity(${index}, -1)">-</button>
+                        <span>${item.quantity}</span>
+                        <button class="quantity-btn" onclick="updateQuantity(${index}, 1)">+</button>
+                        <button class="btn btn-danger" onclick="removeFromCart(${index})">×</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('cart-total').innerHTML = `<strong>Total: ${biteOS.formatCurrency(total)}</strong>`;
+        }
+
+        function updateQuantity(index, change) {
+            cart[index].quantity += change;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            updateCartDisplay();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartDisplay();
+        }
+
+        function showCheckout() {
+            if (cart.length === 0) {
+                biteOS.showNotification('Carrinho vazio', 'warning');
+                return;
+            }
+            document.getElementById('checkout-modal').classList.remove('hidden');
+        }
+
+        function hideCheckout() {
+            document.getElementById('checkout-modal').classList.add('hidden');
+        }
+
+        document.getElementById('checkout-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const customer = {
+                name: document.getElementById('customer-name').value,
+                phone: document.getElementById('customer-phone').value,
+                address: document.getElementById('customer-address').value
+            };
+            
+            const orderData = {
+                customer,
+                restaurant_id: cart[0].restaurantId,
+                items: cart.map(item => ({
+                    product_id: item.productId,
+                    quantity: item.quantity,
+                    unit_price: item.price,
+                    add_ons: [],
+                    notes: ''
+                })),
+                payment_method: document.getElementById('payment-method').value,
+                total_amount: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                notes: document.getElementById('order-notes').value,
+                origin: 'app'
+            };
+            
+            try {
+                const result = await biteOS.api('/orders', {
+                    method: 'POST',
+                    body: orderData
+                });
+                
+                biteOS.showNotification(`Pedido realizado! Código: ${result.confirmationCode}`, 'success');
+                cart = [];
+                updateCartDisplay();
+                hideCheckout();
+                loadOrders();
+                showTab('orders');
+            } catch (error) {
+                biteOS.showNotification('Erro ao fazer pedido', 'error');
+            }
+        });
+
+        async function loadOrders() {
+            // In a real app, this would filter by customer
+            // For demo purposes, showing recent orders
+            try {
+                const allOrders = await biteOS.api('/orders');
+                orders = allOrders.slice(0, 5); // Show last 5 orders
+                displayOrders();
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+
+        function displayOrders() {
+            const ordersList = document.getElementById('orders-list');
+            
+            if (orders.length === 0) {
+                ordersList.innerHTML = '<p>Nenhum pedido encontrado</p>';
+                return;
+            }
+            
+            ordersList.innerHTML = orders.map(order => `
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>Pedido #${order.id}</strong><br>
+                            <small>${order.restaurant_name}</small><br>
+                            <small>${biteOS.formatDate(order.created_at)}</small>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="status-badge status-${order.status}">
+                                ${i18n.t('order.status.' + order.status)}
+                            </div>
+                            <div style="margin-top: 5px;">
+                                <strong>${biteOS.formatCurrency(order.total_amount)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Real-time order updates
+        biteOS.onOrderUpdate((data) => {
+            loadOrders();
+        });
+    </script>
+</body>
+</html>

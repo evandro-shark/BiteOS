@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BiteOS - Cozinha</title>
+    <link rel="stylesheet" href="../styles.css">
+    <style>
+        .kitchen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .order-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+            transition: all 0.3s;
+        }
+        
+        .order-card.production {
+            border-left-color: #f39c12;
+            background: #fff8e1;
+        }
+        
+        .order-card.ready {
+            border-left-color: #27ae60;
+            background: #e8f5e8;
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .order-time {
+            font-size: 12px;
+            color: #666;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+        
+        .order-items {
+            margin: 15px 0;
+        }
+        
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .item-name {
+            font-weight: 500;
+        }
+        
+        .item-quantity {
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .item-notes {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+            margin-top: 4px;
+        }
+        
+        .order-customer {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .timer.warning {
+            color: #f39c12;
+            animation: pulse 1s infinite;
+        }
+        
+        .timer.danger {
+            color: #e74c3c;
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .filter-btn.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="app-title">BiteOS - Cozinha</h1>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div id="user-info"></div>
+            <div class="lang-switcher">
+                <button class="lang-btn" onclick="switchLanguage('pt-BR')">PT</button>
+                <button class="lang-btn" onclick="switchLanguage('en-US')">EN</button>
+            </div>
+            <button class="btn" onclick="logout()" id="logout-btn">Sair</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Login Screen -->
+        <div id="login-screen">
+            <div class="card" style="max-width: 400px; margin: 50px auto;">
+                <h3 id="login-title">Login - Cozinha</h3>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label id="login-label">Login:</label>
+                        <input type="text" class="form-control" id="login-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="password-label">Senha:</label>
+                        <input type="password" class="form-control" id="password-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-success" id="login-submit">Entrar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Kitchen Screen -->
+        <div id="kitchen-screen" class="hidden">
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-number" id="pending-count">0</div>
+                    <div class="stat-label" id="pending-label">Pendentes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="production-count">0</div>
+                    <div class="stat-label" id="production-label">Em Produção</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ready-count">0</div>
+                    <div class="stat-label" id="ready-label">Prontos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avg-time">0min</div>
+                    <div class="stat-label" id="avg-time-label">Tempo Médio</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters">
+                <button class="filter-btn active" onclick="filterOrders('all')" id="filter-all">Todos</button>
+                <button class="filter-btn" onclick="filterOrders('received')" id="filter-received">Recebidos</button>
+                <button class="filter-btn" onclick="filterOrders('production')" id="filter-production">Em Produção</button>
+                <button class="filter-btn" onclick="filterOrders('ready')" id="filter-ready">Prontos</button>
+            </div>
+
+            <!-- Orders Grid -->
+            <div class="kitchen-grid" id="orders-grid">
+                <!-- Orders will be loaded here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state hidden">
+                <h3>🍳 Nenhum pedido na cozinha</h3>
+                <p>Os pedidos aparecerão aqui automaticamente</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div id="order-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="order-details-title">Detalhes do Pedido</h3>
+                <button class="close" onclick="hideOrderModal()">&times;</button>
+            </div>
+            <div id="order-details-content">
+                <!-- Order details will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="../i18n.js"></script>
+    <script src="../utils.js"></script>
+    <script>
+        let currentUser = null;
+        let orders = [];
+        let currentFilter = 'all';
+        let orderTimers = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLanguage();
+            checkAuth();
+        });
+
+        document.addEventListener('languageChanged', updateLanguage);
+
+        function updateLanguage() {
+            document.getElementById('app-title').textContent = i18n.t('kitchen.title');
+            document.getElementById('login-title').textContent = 'Login - ' + i18n.t('kitchen.title');
+            document.getElementById('login-label').textContent = 'Login:';
+            document.getElementById('password-label').textContent = 'Senha:';
+            document.getElementById('login-submit').textContent = 'Entrar';
+            document.getElementById('logout-btn').textContent = 'Sair';
+            document.getElementById('pending-label').textContent = 'Pendentes';
+            document.getElementById('production-label').textContent = 'Em Produção';
+            document.getElementById('ready-label').textContent = 'Prontos';
+            document.getElementById('avg-time-label').textContent = 'Tempo Médio';
+            document.getElementById('filter-all').textContent = 'Todos';
+            document.getElementById('filter-received').textContent = 'Recebidos';
+            document.getElementById('filter-production').textContent = 'Em Produção';
+            document.getElementById('filter-ready').textContent = 'Prontos';
+            document.getElementById('order-details-title').textContent = 'Detalhes do Pedido';
+            
+            // Update active language button
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === (i18n.getCurrentLanguage() === 'pt-BR' ? 'PT' : 'EN'));
+            });
+        }
+
+        function switchLanguage(lang) {
+            i18n.setLanguage(lang);
+        }
+
+        function checkAuth() {
+            currentUser = biteOS.getUser();
+            if (currentUser && (currentUser.role === 'kitchen' || currentUser.role === 'manager')) {
+                showKitchenScreen();
+                loadOrders();
+                startRealTimeUpdates();
+            } else {
+                showLoginScreen();
+            }
+        }
+
+        function showLoginScreen() {
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('kitchen-screen').classList.add('hidden');
+        }
+
+        function showKitchenScreen() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('kitchen-screen').classList.remove('hidden');
+            
+            document.getElementById('user-info').textContent = `Usuário: ${currentUser.name}`;
+        }
+
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const credentials = {
+                login: document.getElementById('login-input').value,
+                password: document.getElementById('password-input').value
+            };
+            
+            try {
+                const result = await biteOS.login(credentials);
+                currentUser = result.user;
+                
+                if (currentUser.role === 'kitchen' || currentUser.role === 'manager') {
+                    showKitchenScreen();
+                    loadOrders();
+                    startRealTimeUpdates();
+                } else {
+                    biteOS.showNotification('Acesso negado para este tipo de usuário', 'error');
+                }
+            } catch (error) {
+                biteOS.showNotification('Credenciais inválidas', 'error');
+            }
+        });
+
+        function logout() {
+            biteOS.logout();
+        }
+
+        async function loadOrders() {
+            try {
+                const allOrders = await biteOS.api('/orders?restaurant_id=1');
+                orders = allOrders.filter(order => 
+                    ['received', 'production', 'ready'].includes(order.status)
+                );
+                
+                updateStats();
+                displayOrders();
+            } catch (error) {
+                console.error('Error loading orders:', error);
+            }
+        }
+
+        function updateStats() {
+            const pending = orders.filter(o => o.status === 'received').length;
+            const production = orders.filter(o => o.status === 'production').length;
+            const ready = orders.filter(o => o.status === 'ready').length;
+            
+            document.getElementById('pending-count').textContent = pending;
+            document.getElementById('production-count').textContent = production;
+            document.getElementById('ready-count').textContent = ready;
+            
+            // Calculate average time (simulation)
+            document.getElementById('avg-time').textContent = '12min';
+        }
+
+        function filterOrders(filter) {
+            currentFilter = filter;
+            
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[onclick="filterOrders('${filter}')"]`).classList.add('active');
+            
+            displayOrders();
+        }
+
+        function displayOrders() {
+            let filteredOrders = orders;
+            
+            if (currentFilter !== 'all') {
+                filteredOrders = orders.filter(order => order.status === currentFilter);
+            }
+            
+            const grid = document.getElementById('orders-grid');
+            const emptyState = document.getElementById('empty-state');
+            
+            if (filteredOrders.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            grid.innerHTML = filteredOrders.map(order => {
+                const orderTime = new Date(order.created_at);
+                const elapsed = Math.floor((Date.now() - orderTime.getTime()) / 60000); // minutes
+                
+                return `
+                    <div class="order-card ${order.status}" onclick="showOrderDetails(${order.id})">
+                        <div class="order-header">
+                            <div class="order-number">#${order.id}</div>
+                            <div class="order-time">${biteOS.formatTime(order.created_at)}</div>
+                        </div>
+                        
+                        <div class="timer ${elapsed > 20 ? 'danger' : elapsed > 15 ? 'warning' : ''}">
+                            ⏱️ ${elapsed}min
+                        </div>
+                        
+                        <div class="order-customer">
+                            <strong>Cliente:</strong> ${order.customer_name || 'Balcão'}<br>
+                            <strong>Origem:</strong> ${order.origin.toUpperCase()}
+                        </div>
+                        
+                        <div class="order-items" id="order-items-${order.id}">
+                            <div class="loading">Carregando itens...</div>
+                        </div>
+                        
+                        <div class="order-actions">
+                            ${order.status === 'received' ? `
+                                <button class="btn btn-warning" onclick="startProduction(${order.id}); event.stopPropagation();">
+                                    ${i18n.t('kitchen.start.production')}
+                                </button>
+                            ` : ''}
+                            ${order.status === 'production' ? `
+                                <button class="btn btn-success" onclick="markReady(${order.id}); event.stopPropagation();">
+                                    ${i18n.t('kitchen.mark.ready')}
+                                </button>
+                            ` : ''}
+                            ${order.status === 'ready' ? `
+                                <div class="status-badge status-ready">✅ Pronto para Entrega</div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Load order items for each order
+            filteredOrders.forEach(order => {
+                loadOrderItems(order.id);
+            });
+        }
+
+        async function loadOrderItems(orderId) {
+            try {
+                // In a real app, this would be a separate API call
+                // For demo, simulate order items
+                const items = [
+                    { name: 'Hambúrguer Clássico', quantity: 2, notes: 'Sem cebola' },
+                    { name: 'Batata Frita', quantity: 1, notes: '' },
+                    { name: 'Refrigerante', quantity: 2, notes: 'Gelado' }
+                ];
+                
+                const itemsDiv = document.getElementById(`order-items-${orderId}`);
+                if (itemsDiv) {
+                    itemsDiv.innerHTML = items.map(item => `
+                        <div class="order-item">
+                            <div>
+                                <div class="item-name">${item.name}</div>
+                                ${item.notes ? `<div class="item-notes">${item.notes}</div>` : ''}
+                            </div>
+                            <div class="item-quantity">${item.quantity}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error loading order items:', error);
+            }
+        }
+
+        async function startProduction(orderId) {
+            try {
+                await biteOS.api(`/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    body: { status: 'production' }
+                });
+                
+                biteOS.showNotification(`Produção iniciada para pedido #${orderId}`, 'success');
+                loadOrders();
+            } catch (error) {
+                biteOS.showNotification('Erro ao iniciar produção', 'error');
+            }
+        }
+
+        async function markReady(orderId) {
+            try {
+                await biteOS.api(`/orders/${orderId}/status`, {
+                    method: 'PUT',
+                    body: { status: 'ready' }
+                });
+                
+                biteOS.showNotification(`Pedido #${orderId} marcado como pronto!`, 'success');
+                loadOrders();
+                
+                // Play notification sound (simulation)
+                console.log('🔔 PEDIDO PRONTO! #' + orderId);
+            } catch (error) {
+                biteOS.showNotification('Erro ao marcar como pronto', 'error');
+            }
+        }
+
+        function showOrderDetails(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+            
+            const modal = document.getElementById('order-modal');
+            const content = document.getElementById('order-details-content');
+            
+            content.innerHTML = `
+                <div class="form-group">
+                    <strong>Pedido #${order.id}</strong><br>
+                    <small>Criado em: ${biteOS.formatDate(order.created_at)} às ${biteOS.formatTime(order.created_at)}</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Cliente:</label>
+                    <div>${order.customer_name || 'Cliente Balcão'}</div>
+                    ${order.customer_phone ? `<div>Tel: ${order.customer_phone}</div>` : ''}
+                </div>
+                
+                <div class="form-group">
+                    <label>Status:</label>
+                    <div class="status-badge status-${order.status}">
+                        ${i18n.t('order.status.' + order.status)}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Origem:</label>
+                    <div>${order.origin.toUpperCase()}</div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Total:</label>
+                    <div style="font-size: 18px; font-weight: bold;">
+                        ${biteOS.formatCurrency(order.total_amount)}
+                    </div>
+                </div>
+                
+                ${order.notes ? `
+                    <div class="form-group">
+                        <label>Observações:</label>
+                        <div style="background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                            ${order.notes}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <div style="margin-top: 20px;">
+                    ${order.status === 'received' ? `
+                        <button class="btn btn-warning" onclick="startProduction(${order.id}); hideOrderModal();">
+                            ${i18n.t('kitchen.start.production')}
+                        </button>
+                    ` : ''}
+                    ${order.status === 'production' ? `
+                        <button class="btn btn-success" onclick="markReady(${order.id}); hideOrderModal();">
+                            ${i18n.t('kitchen.mark.ready')}
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+
+        function hideOrderModal() {
+            document.getElementById('order-modal').classList.add('hidden');
+        }
+
+        function startRealTimeUpdates() {
+            biteOS.joinRoom('kitchen');
+            
+            biteOS.onOrderUpdate((data) => {
+                loadOrders();
+                
+                if (data.orderId) {
+                    biteOS.showNotification(`Novo pedido recebido: #${data.orderId}`, 'info');
+                    
+                    // Play notification sound (simulation)
+                    console.log('🔔 NOVO PEDIDO! #' + data.orderId);
+                }
+            });
+        }
+
+        // Update timers every minute
+        setInterval(() => {
+            if (document.getElementById('kitchen-screen').classList.contains('hidden')) return;
+            
+            document.querySelectorAll('.timer').forEach(timer => {
+                const orderCard = timer.closest('.order-card');
+                const orderNumber = orderCard.querySelector('.order-number').textContent.replace('#', '');
+                const order = orders.find(o => o.id == orderNumber);
+                
+                if (order) {
+                    const elapsed = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
+                    timer.textContent = `⏱️ ${elapsed}min`;
+                    
+                    timer.className = 'timer';
+                    if (elapsed > 20) timer.classList.add('danger');
+                    else if (elapsed > 15) timer.classList.add('warning');
+                }
+            });
+        }, 60000);
+    </script>
+</body>
+</html>
